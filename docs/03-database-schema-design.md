@@ -73,7 +73,7 @@ CREATE TABLE users (
   age INTEGER CHECK (age >= 13 AND age <= 120),
   
   -- Referral Code (for customers)
-  referral_code VARCHAR(20) UNIQUE, -- e.g., 'SAJI-ABC123'
+  referral_code VARCHAR(20) UNIQUE, -- Format: 'SAJI-' + 6 alphanumeric chars (e.g., 'SAJI-ABC123')
   
   -- Associations
   branch_id UUID REFERENCES branches(id), -- for staff only
@@ -92,18 +92,7 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_referral_code ON users(referral_code);
 CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_branch_id ON users(branch_id);
 CREATE INDEX idx_users_restaurant_id ON users(restaurant_id);
-```
-
-**Notes:**
-- `referral_code` is only populated for customers (role='customer')
-- `branch_id` is only populated for staff (role='staff')
-- `restaurant_id` is populated for staff and owners
-- Password stored as bcrypt hash (never plaintext)
-- Email verification required before full access
-
----
 
 ### 2.2 restaurants
 
@@ -116,6 +105,7 @@ CREATE TABLE restaurants (
   
   -- Restaurant Details
   name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) UNIQUE NOT NULL, -- URL-friendly identifier (e.g., 'nasi-lemak-corner')
   description TEXT,
   logo_url VARCHAR(500), -- cloud storage URL
   
@@ -133,6 +123,7 @@ CREATE TABLE restaurants (
 
 -- Indexes
 CREATE INDEX idx_restaurants_is_active ON restaurants(is_active);
+CREATE INDEX idx_restaurants_slug ON restaurants(slug);
 ```
 
 **Notes:**
@@ -179,7 +170,7 @@ CREATE INDEX idx_branches_is_active ON branches(is_active);
 
 ### 2.4 referrals
 
-Stores upline-downline relationships (max 3 uplines per user).
+Stores upline-downline relationships (max 3 uplines per user **per restaurant**).
 
 ```sql
 CREATE TABLE referrals (
@@ -191,47 +182,52 @@ CREATE TABLE referrals (
   upline_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   upline_level INTEGER NOT NULL CHECK (upline_level IN (1, 2, 3)), -- 1=direct, 2=level 2, 3=level 3
   
+  -- Restaurant Context (CRITICAL: Referrals are restaurant-specific)
+  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  
   -- Metadata
   created_at TIMESTAMP DEFAULT NOW(),
   
   -- Constraints
-  UNIQUE(downline_id, upline_level), -- each downline has max 1 upline per level
+  UNIQUE(downline_id, upline_level, restaurant_id), -- each downline has max 1 upline per level per restaurant
   CHECK (downline_id != upline_id) -- can't refer yourself
 );
 
 -- Indexes for performance
 CREATE INDEX idx_referrals_downline_id ON referrals(downline_id);
 CREATE INDEX idx_referrals_upline_id ON referrals(upline_id);
+CREATE INDEX idx_referrals_restaurant_id ON referrals(restaurant_id);
+CREATE INDEX idx_referrals_downline_restaurant ON referrals(downline_id, restaurant_id);
 CREATE INDEX idx_referrals_upline_level ON referrals(upline_level);
 ```
 
 **Notes:**
-- When user registers with referral code:
-  - Level 1: Direct referrer
-  - Level 2: Referrer's upline (if exists)
-  - Level 3: Referrer's level 2 upline (if exists)
-- Maximum 3 rows per `downline_id` (one for each level)
-- Unlimited rows per `upline_id` (unlimited downlines)
+- **CRITICAL CHANGE:** Referrals are now **restaurant-specific**
+- When user uses a referral code at a restaurant for the first time:
+  - Level 1: Direct referrer (at that restaurant)
+  - Level 2: Referrer's upline at that restaurant (if exists)
+  - Level 3: Referrer's level 2 upline at that restaurant (if exists)
+- Maximum 3 rows per `(downline_id, restaurant_id)` combination
+- Same user can have different upline chains at different restaurants
+- Unlimited rows per `upline_id` (unlimited downlines across all restaurants)
 
-**Example:**
+**Example (Restaurant X):**
 ```
-User A refers User B:
-  - Row 1: downline_id=B, upline_id=A, upline_level=1
+User A refers User B at Restaurant X:
+  - Row 1: downline_id=B, upline_id=A, upline_level=1, restaurant_id=X
 
-User B refers User C:
-  - Row 1: downline_id=C, upline_id=B, upline_level=1
-  - Row 2: downline_id=C, upline_id=A, upline_level=2
+User B refers User C at Restaurant X:
+  - Row 1: downline_id=C, upline_id=B, upline_level=1, restaurant_id=X
+  - Row 2: downline_id=C, upline_id=A, upline_level=2, restaurant_id=X
 
-User C refers User D:
-  - Row 1: downline_id=D, upline_id=C, upline_level=1
-  - Row 2: downline_id=D, upline_id=B, upline_level=2
-  - Row 3: downline_id=D, upline_id=A, upline_level=3
+User C refers User D at Restaurant X:
+  - Row 1: downline_id=D, upline_id=C, upline_level=1, restaurant_id=X
+  - Row 2: downline_id=D, upline_id=B, upline_level=2, restaurant_id=X
+  - Row 3: downline_id=D, upline_id=A, upline_level=3, restaurant_id=X
 
-User D refers User E:
-  - Row 1: downline_id=E, upline_id=D, upline_level=1
-  - Row 2: downline_id=E, upline_id=C, upline_level=2
-  - Row 3: downline_id=E, upline_id=B, upline_level=3
-  (User A gets nothing, as beyond 3 levels)
+User B refers User E at Restaurant Y (different restaurant):
+  - Row 1: downline_id=E, upline_id=B, upline_level=1, restaurant_id=Y
+  (No level 2/3 because User B has no upline chain at Restaurant Y)
 ```
 
 ---
@@ -367,6 +363,106 @@ CREATE INDEX idx_virtual_currency_ledger_related_transaction_id ON virtual_curre
 
 ---
 
+### 2.7 saved_referral_codes
+
+Stores referral codes that customers have clicked/saved but not yet used.
+
+```sql
+CREATE TABLE saved_referral_codes (
+  -- Primary Key
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Who saved it
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  -- Where it's valid
+  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  
+  -- The code
+  referral_code VARCHAR(20) NOT NULL,
+  upline_user_id UUID REFERENCES users(id), -- Derived from code lookup
+  
+  -- Status
+  is_used BOOLEAN DEFAULT FALSE,
+  used_at TIMESTAMP,
+  
+  -- Metadata
+  saved_at TIMESTAMP DEFAULT NOW(),
+  
+  -- Prevent duplicates
+  UNIQUE(user_id, restaurant_id, referral_code)
+);
+
+CREATE INDEX idx_saved_codes_user_restaurant ON saved_referral_codes(user_id, restaurant_id);
+CREATE INDEX idx_saved_codes_is_used ON saved_referral_codes(is_used);
+```
+
+**Notes:**
+- Created when customer clicks referral link `/join/:restaurantSlug/:code`
+- Customer can save multiple codes for the same restaurant
+- When first transaction at restaurant occurs, one code is marked as used
+- Unused codes remain available for future first visits at other restaurants
+
+**Example Flow:**
+```
+1. Customer B clicks sharesaji.com/join/restaurant-x/SAJI-ABC123
+   → Row created: (user_id=B, restaurant_id=X, code=SAJI-ABC123, is_used=FALSE)
+
+2. Customer B clicks sharesaji.com/join/restaurant-x/SAJI-DEF456
+   → Row created: (user_id=B, restaurant_id=X, code=SAJI-DEF456, is_used=FALSE)
+
+3. Customer B visits Restaurant X, chooses to use SAJI-ABC123
+   → Update: is_used=TRUE, used_at=NOW()
+   → Create referral chain using SAJI-ABC123
+   → SAJI-DEF456 remains unused (could have been used instead)
+```
+
+---
+
+### 2.8 customer_restaurant_history
+
+Tracks customer's first visit and activity per restaurant.
+
+```sql
+CREATE TABLE customer_restaurant_history (
+  -- Composite Primary Key
+  customer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  
+  -- First Visit
+  first_visit_date TIMESTAMP DEFAULT NOW(),
+  referral_code_used VARCHAR(20), -- Which code they used (if any)
+  
+  -- Activity Stats
+  total_visits INTEGER DEFAULT 1,
+  total_spent DECIMAL(10,2) DEFAULT 0,
+  last_visit_date TIMESTAMP DEFAULT NOW(),
+  
+  PRIMARY KEY (customer_id, restaurant_id)
+);
+
+CREATE INDEX idx_customer_restaurant_history_customer ON customer_restaurant_history(customer_id);
+CREATE INDEX idx_customer_restaurant_history_restaurant ON customer_restaurant_history(restaurant_id);
+CREATE INDEX idx_customer_restaurant_history_first_visit ON customer_restaurant_history(first_visit_date);
+```
+
+**Notes:**
+- Created on customer's first transaction at a restaurant
+- Used to determine if guaranteed discount should apply
+- Tracks which referral code was used (for analytics)
+- Stats updated on each subsequent transaction
+
+**Usage:**
+```sql
+-- Check if customer's first visit at this restaurant
+SELECT EXISTS (
+  SELECT 1 FROM customer_restaurant_history 
+  WHERE customer_id = ? AND restaurant_id = ?
+);
+```
+
+---
+
 ## 3. Views for Common Queries
 
 ### 3.1 customer_wallet_balance
@@ -433,12 +529,13 @@ GROUP BY b.restaurant_id;
 
 ### 4.1 create_referral_chain
 
-Creates referral relationships when user registers with a referral code.
+Creates restaurant-specific referral relationships when customer uses a code at a restaurant for the first time.
 
 ```sql
 CREATE OR REPLACE FUNCTION create_referral_chain(
   p_downline_id UUID,
-  p_referral_code VARCHAR(20)
+  p_referral_code VARCHAR(20),
+  p_restaurant_id UUID
 )
 RETURNS VOID AS $$
 DECLARE
@@ -446,6 +543,15 @@ DECLARE
   v_level2_upline_id UUID;
   v_level3_upline_id UUID;
 BEGIN
+  -- Check if downline already has referral chain at this restaurant
+  IF EXISTS (
+    SELECT 1 FROM referrals 
+    WHERE downline_id = p_downline_id 
+    AND restaurant_id = p_restaurant_id
+  ) THEN
+    RAISE EXCEPTION 'Customer already has a referral chain at this restaurant';
+  END IF;
+  
   -- Find Level 1 upline (direct referrer)
   SELECT id INTO v_level1_upline_id
   FROM users
@@ -456,39 +562,49 @@ BEGIN
   END IF;
   
   -- Insert Level 1 referral
-  INSERT INTO referrals (downline_id, upline_id, upline_level)
-  VALUES (p_downline_id, v_level1_upline_id, 1);
+  INSERT INTO referrals (downline_id, upline_id, upline_level, restaurant_id)
+  VALUES (p_downline_id, v_level1_upline_id, 1, p_restaurant_id);
   
-  -- Find Level 2 upline (referrer's upline)
+  -- Find Level 2 upline (referrer's upline at this restaurant)
   SELECT upline_id INTO v_level2_upline_id
   FROM referrals
-  WHERE downline_id = v_level1_upline_id AND upline_level = 1;
+  WHERE downline_id = v_level1_upline_id 
+    AND upline_level = 1 
+    AND restaurant_id = p_restaurant_id;
   
   IF v_level2_upline_id IS NOT NULL THEN
-    INSERT INTO referrals (downline_id, upline_id, upline_level)
-    VALUES (p_downline_id, v_level2_upline_id, 2);
+    INSERT INTO referrals (downline_id, upline_id, upline_level, restaurant_id)
+    VALUES (p_downline_id, v_level2_upline_id, 2, p_restaurant_id);
     
-    -- Find Level 3 upline (referrer's level 2 upline)
+    -- Find Level 3 upline (referrer's level 2 upline at this restaurant)
     SELECT upline_id INTO v_level3_upline_id
     FROM referrals
-    WHERE downline_id = v_level1_upline_id AND upline_level = 2;
+    WHERE downline_id = v_level1_upline_id 
+      AND upline_level = 2 
+      AND restaurant_id = p_restaurant_id;
     
     IF v_level3_upline_id IS NOT NULL THEN
-      INSERT INTO referrals (downline_id, upline_id, upline_level)
-      VALUES (p_downline_id, v_level3_upline_id, 3);
+      INSERT INTO referrals (downline_id, upline_id, upline_level, restaurant_id)
+      VALUES (p_downline_id, v_level3_upline_id, 3, p_restaurant_id);
     END IF;
   END IF;
 END;
 $$ LANGUAGE plpgsql;
 ```
 
-**Usage:** Called during registration after user is created.
+**Usage:** Called during first transaction at a restaurant (not at registration).
+
+**Key Changes:**
+- Added `p_restaurant_id` parameter
+- Checks if customer already has chain at this restaurant (prevents duplicates)
+- Looks up upline chain specific to this restaurant
+- Same customer can have different upline chains at different restaurants
 
 ---
 
 ### 4.2 distribute_upline_rewards
 
-Distributes 1% rewards to uplines when a transaction occurs.
+Distributes 1% rewards to uplines at the specific restaurant when a transaction occurs.
 
 ```sql
 CREATE OR REPLACE FUNCTION distribute_upline_rewards(
@@ -503,9 +619,17 @@ DECLARE
   v_expiry_date TIMESTAMP;
   v_new_balance DECIMAL(10,2);
   v_upline_reward_percent DECIMAL(5,2);
+  v_restaurant_id UUID;
 BEGIN
-  -- Get restaurant's upline reward percentage
-  SELECT r.upline_reward_percent INTO v_upline_reward_percent
+  -- Get restaurant context and configuration
+  SELECT 
+    r.id,
+    r.upline_reward_percent,
+    NOW() + INTERVAL '1 day' * r.virtual_currency_expiry_days
+  INTO 
+    v_restaurant_id,
+    v_upline_reward_percent,
+    v_expiry_date
   FROM transactions t
   JOIN branches b ON t.branch_id = b.id
   JOIN restaurants r ON b.restaurant_id = r.id
@@ -514,18 +638,12 @@ BEGIN
   -- Calculate reward amount (1% of bill by default)
   v_reward_amount := p_bill_amount * (v_upline_reward_percent / 100);
   
-  -- Get expiry date (30 days from now by default)
-  SELECT NOW() + INTERVAL '1 day' * r.virtual_currency_expiry_days INTO v_expiry_date
-  FROM transactions t
-  JOIN branches b ON t.branch_id = b.id
-  JOIN restaurants r ON b.restaurant_id = r.id
-  WHERE t.id = p_transaction_id;
-  
-  -- Loop through all uplines (up to 3 levels)
+  -- Loop through uplines at this specific restaurant only (up to 3 levels)
   FOR v_upline IN 
     SELECT upline_id, upline_level
     FROM referrals
     WHERE downline_id = p_customer_id
+      AND restaurant_id = v_restaurant_id
     ORDER BY upline_level
   LOOP
     -- Calculate new balance
@@ -559,6 +677,11 @@ $$ LANGUAGE plpgsql;
 ```
 
 **Usage:** Called after transaction is created.
+
+**Key Changes:**
+- Fetches `restaurant_id` from transaction
+- Filters referrals by `restaurant_id` (only uplines at this restaurant get rewards)
+- Virtual currency earned is global (can be spent at any restaurant in Phase 2)
 
 ---
 
@@ -624,23 +747,19 @@ DECLARE
   v_current_balance DECIMAL(10,2);
   v_new_balance DECIMAL(10,2);
   v_expired_count INTEGER := 0;
+  v_related_ledger_id UUID;
 BEGIN
   -- Find all unexpired earnings past expiry date
   FOR v_expired_record IN
     SELECT 
-      user_id,
-      amount,
-      expires_at,
-      id AS ledger_id
-    FROM virtual_currency_ledger
-    WHERE transaction_type = 'earn'
-      AND expires_at < NOW()
-      AND id NOT IN (
-        SELECT related_ledger_id 
-        FROM virtual_currency_ledger 
-        WHERE transaction_type = 'expire' 
-          AND related_ledger_id IS NOT NULL
-      )
+      vcl.id AS ledger_id,
+      vcl.user_id,
+      vcl.amount,
+      vcl.expires_at
+    FROM virtual_currency_ledger vcl
+    WHERE vcl.transaction_type = 'earn'
+      AND vcl.expires_at < NOW()
+      AND vcl.expired_at IS NULL  -- Not yet expired
   LOOP
     -- Get current balance
     SELECT COALESCE(SUM(amount), 0) INTO v_current_balance
@@ -650,7 +769,12 @@ BEGIN
     -- Calculate new balance
     v_new_balance := v_current_balance - v_expired_record.amount;
     
-    -- Insert expiry record
+    -- Mark the original earning as expired
+    UPDATE virtual_currency_ledger
+    SET expired_at = NOW()
+    WHERE id = v_expired_record.ledger_id;
+    
+    -- Insert expiry record (negative transaction)
     INSERT INTO virtual_currency_ledger (
       user_id,
       transaction_type,

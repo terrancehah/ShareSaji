@@ -252,15 +252,15 @@ Content-Type: application/json
 
 ## 3. Referral Management
 
-### 3.1 Create Referral Chain (RPC)
+### 3.1 Save Referral Code (Frontend Link Click)
 
-**Endpoint:** `POST /rest/v1/rpc/create_referral_chain`
+**Endpoint:** `POST /rest/v1/saved_referral_codes`
 
-**Description:** Create referral relationships (up to 3 uplines) when user registers.
+**Description:** Save a referral code when customer clicks a share link. Used before first transaction at restaurant.
 
 **Request Headers:**
 ```
-Authorization: Bearer {ACCESS_TOKEN}
+Authorization: Bearer {access_token}
 apikey: {SUPABASE_ANON_KEY}
 Content-Type: application/json
 ```
@@ -268,8 +268,85 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "p_downline_id": "uuid-of-new-user",
-  "p_referral_code": "SAJI-ABC123"
+  "user_id": "uuid-of-customer",
+  "restaurant_id": "uuid-of-restaurant",
+  "referral_code": "SAJI-ABC123",
+  "upline_user_id": "uuid-of-referrer"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": "uuid-of-saved-code",
+  "user_id": "uuid-of-customer",
+  "restaurant_id": "uuid-of-restaurant",
+  "referral_code": "SAJI-ABC123",
+  "is_used": false,
+  "saved_at": "2025-09-30T10:00:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Invalid referral code or restaurant ID
+- `409 Conflict` - Code already saved for this user-restaurant combination
+
+---
+
+### 3.2 Get Saved Referral Codes
+
+**Endpoint:** `GET /rest/v1/saved_referral_codes?user_id=eq.{user_id}&restaurant_id=eq.{restaurant_id}&is_used=eq.false&select=*,users!upline_user_id(full_name)`
+
+**Description:** Get all unused saved codes for a customer at a specific restaurant.
+
+**Request Headers:**
+```
+Authorization: Bearer {access_token}
+apikey: {SUPABASE_ANON_KEY}
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "uuid-saved-code-1",
+    "referral_code": "SAJI-ABC123",
+    "saved_at": "2025-09-28T10:00:00Z",
+    "users": {
+      "full_name": "Friend A"
+    }
+  },
+  {
+    "id": "uuid-saved-code-2",
+    "referral_code": "SAJI-DEF456",
+    "saved_at": "2025-09-29T14:00:00Z",
+    "users": {
+      "full_name": "Friend B"
+    }
+  }
+]
+```
+
+---
+
+### 3.3 Create Referral Chain (RPC)
+
+**Endpoint:** `POST /rest/v1/rpc/create_referral_chain`
+
+**Description:** Create restaurant-specific referral relationships (up to 3 uplines) during first transaction at restaurant.
+
+**Request Headers:**
+```
+Authorization: Bearer {access_token}
+apikey: {SUPABASE_ANON_KEY}
+```
+
+**Request Body:**
+```json
+{
+  "p_downline_id": "uuid-of-customer",
+  "p_referral_code": "SAJI-ABC123",
+  "p_restaurant_id": "uuid-of-restaurant"
 }
 ```
 
@@ -281,16 +358,16 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
-- `400 Bad Request` - Invalid referral code
-- `409 Conflict` - Referral chain already exists for this user
+- `400 Bad Request` - Invalid referral code or restaurant ID
+- `409 Conflict` - Customer already has referral chain at this restaurant
 
 ---
 
-### 3.2 Get User's Uplines
+### 3.4 Get User's Uplines
 
-**Endpoint:** `GET /rest/v1/referrals?downline_id=eq.{user_id}&select=upline_id,upline_level,users(full_name,referral_code)`
+**Endpoint:** `GET /rest/v1/referrals?downline_id=eq.{user_id}&restaurant_id=eq.{restaurant_id}&select=upline_id,upline_level,users(full_name,referral_code)`
 
-**Description:** Get all uplines for a user (who referred them).
+**Description:** Get all uplines for a user at a specific restaurant (who referred them).
 
 **Request Headers:**
 ```
@@ -322,11 +399,11 @@ apikey: {SUPABASE_ANON_KEY}
 
 ---
 
-### 3.3 Get User's Downlines
+### 3.5 Get User's Downlines
 
-**Endpoint:** `GET /rest/v1/referrals?upline_id=eq.{user_id}&select=downline_id,upline_level,users(full_name,referral_code,created_at)`
+**Endpoint:** `GET /rest/v1/referrals?upline_id=eq.{user_id}&restaurant_id=eq.{restaurant_id}&select=downline_id,upline_level,users(full_name,referral_code,created_at)`
 
-**Description:** Get all downlines for a user (who they referred).
+**Description:** Get all downlines for a user at a specific restaurant (who they referred).
 
 **Request Headers:**
 ```
@@ -669,7 +746,39 @@ Content-Type: application/json
 
 ## 6. Restaurant & Branch Management
 
-### 6.1 Get Restaurant Details
+### 6.1 Get Restaurant by Slug
+
+**Endpoint:** `GET /rest/v1/restaurants?slug=eq.{restaurant_slug}`
+
+**Description:** Get restaurant by URL-friendly slug (used for referral links).
+
+**Request Headers:**
+```
+Authorization: Bearer {ACCESS_TOKEN}
+apikey: {SUPABASE_ANON_KEY}
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "uuid-restaurant",
+    "name": "Nasi Lemak Corner",
+    "slug": "nasi-lemak-corner",
+    "description": "Authentic Malaysian cuisine",
+    "logo_url": "https://example.com/logo.png",
+    "guaranteed_discount_percent": 5.00,
+    "is_active": true
+  }
+]
+```
+
+**Error Responses:**
+- `404 Not Found` - Invalid restaurant slug (empty array)
+
+---
+
+### 6.2 Get Restaurant Details
 
 **Endpoint:** `GET /rest/v1/restaurants?id=eq.{restaurant_id}`
 

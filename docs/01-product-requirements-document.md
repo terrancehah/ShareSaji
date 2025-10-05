@@ -80,13 +80,14 @@ ShareSaji is a web-based viral marketing platform that helps Malaysian local res
 - Password recovery via email magic link
 - **Rationale:** Simple, secure, enables personalized offers and code recovery
 
-#### 3.1.2 Personal Discount Code/QR
-- Unique shareable code (e.g., "SAJI-ABC123")
-- QR code generation for easy scanning
-- Shareable link (e.g., sharesaji.com/r/ABC123)
+#### 3.1.2 Personal Discount Code & Sharing
+- Unique shareable code (e.g., "SAJI-ABC123") - generated on registration
+- **Restaurant-specific share links:** `sharesaji.com/join/:restaurantSlug/:code`
+- Example: `sharesaji.com/join/nasi-lemak-corner/SAJI-ABC123`
 - Copy-to-clipboard functionality
-- Social media share buttons (WhatsApp, Facebook, Instagram)
-- **Rationale:** Multiple sharing methods maximize virality
+- Social media share buttons (WhatsApp, Facebook, Instagram) with pre-filled messages
+- **QR code generator** (placeholder in MVP, full implementation Phase 2)
+- **Rationale:** Restaurant-specific links ensure proper attribution and fair reward distribution
 
 #### 3.1.3 Virtual Currency Wallet
 - Real-time balance display (in RM)
@@ -97,10 +98,11 @@ ShareSaji is a web-based viral marketing platform that helps Malaysian local res
 - **Rationale:** Transparency builds trust and encourages sharing
 
 #### 3.1.4 Referral Tracking
-- Visual referral tree (up to 3 levels deep)
-- Downline count (unlimited)
-- Earnings breakdown by downline level
-- **Rationale:** Gamification motivates continued sharing
+- Visual referral tree (up to 3 levels deep) **per restaurant**
+- Downline count (unlimited) across all restaurants
+- Earnings breakdown by restaurant and downline level
+- **Saved Codes Collection:** Display referral codes saved for restaurants not yet visited
+- **Rationale:** Gamification motivates continued sharing; per-restaurant tracking ensures fair attribution
 
 ### 3.2 Staff/Restaurant Portal
 
@@ -172,11 +174,12 @@ ShareSaji is a web-based viral marketing platform that helps Malaysian local res
 ### 4.1 Two-Tier Discount System
 
 #### 4.1.1 Guaranteed Discount (5%)
-- **Eligibility:** First transaction after registration
+- **Eligibility:** First transaction **at each restaurant** (not first transaction ever)
 - **Application:** Automatic at checkout when code verified
 - **Amount:** 5% of current bill
-- **Cost to Restaurant:** 5% per new customer's first transaction
-- **Example:** RM100 bill → RM5 discount → Customer pays RM95
+- **Cost to Restaurant:** 5% per new customer's first transaction at that specific restaurant
+- **Example:** RM100 bill at Restaurant A → RM5 discount → Customer pays RM95
+- **Note:** Same customer can get 5% again at Restaurant B (their first visit there)
 
 #### 4.1.2 Unguaranteed Discount (Virtual Currency)
 - **Earning:** 1% of each downline's spend, distributed to up to 3 uplines
@@ -218,15 +221,34 @@ ShareSaji is a web-based viral marketing platform that helps Malaysian local res
 
 ---
 
-## 5. Cross-Restaurant Functionality
+## 5. Restaurant-Specific Referral Model
 
-### 5.1 Network Effect
-- **Single Code, Multiple Restaurants:** One user code works at all participating restaurants
-- **Unified Wallet:** Virtual currency earned at Restaurant A can be redeemed at Restaurant B
-- **Benefits:**
-  - **For Customers:** More opportunities to earn and redeem
-  - **For Restaurants:** Access to shared customer network, lower individual marketing cost
-- **MVP Scope:** Launch with single restaurant; add cross-restaurant in Phase 2
+### 5.1 Core Principle: Fair Attribution
+- **Restaurant-Specific Referral Chains:** Each restaurant builds its own referral network
+- **Referral Code:** User has ONE code (`SAJI-ABC123`) but different upline chains per restaurant
+- **Share Link Format:** `sharesaji.com/join/:restaurantSlug/:referralCode`
+- **Cost Attribution:** Restaurant only pays for customers they acquired through their network
+
+### 5.2 Multi-Restaurant Participation (Phase 2+)
+- **Customer Journey:**
+  1. Customer clicks Friend A's link for Restaurant X → Code saved
+  2. Customer visits Restaurant X → Uses Friend A's code → Restaurant X acquires customer
+  3. Customer clicks Friend B's link for Restaurant Y → Different code saved
+  4. Customer visits Restaurant Y → Uses Friend B's code → Restaurant Y acquires customer
+  5. Customer now has 2 separate upline chains (one per restaurant)
+
+- **Virtual Currency:**
+  - Earned when downlines spend at the SPECIFIC restaurant where the chain exists
+  - **Global balance** (can be redeemed at any restaurant in Phase 2)
+  - Restaurant pays upline rewards for transactions at their location
+
+### 5.3 Benefits
+- **For Customers:** Participate in multiple restaurant networks, earn from all
+- **For Restaurants:** 
+  - Only pay for their own customer acquisitions
+  - Fair cost attribution per restaurant
+  - Build independent referral networks
+- **MVP Scope:** Launch with single restaurant; multi-restaurant support in Phase 2
 
 ---
 
