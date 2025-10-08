@@ -1031,3 +1031,324 @@ ORDER BY t.transaction_date DESC;
 3. Setup Supabase project
 4. Run migrations
 5. Test with sample data
+
+---
+
+## 12. Workflow Validation & Gap Analysis
+
+### 12.1 Critical Workflow Scenarios
+
+#### Scenario 1: Multi-Restaurant Participation
+**Flow:**
+1. Customer uses Friend A's code at Restaurant X → Chain created at X
+2. Customer uses Friend B's code at Restaurant Y → Chain created at Y
+3. Customer spends RM100 at Restaurant X → Friend A earns RM1 (paid by Restaurant X)
+4. Customer spends RM100 at Restaurant Y → Friend B earns RM1 (paid by Restaurant Y)
+
+**Database Validation:**
+- ✅ `referrals.restaurant_id` ensures separate chains per restaurant
+- ✅ `customer_restaurant_history` tracks first visit per restaurant
+- ✅ `distribute_upline_rewards()` filters uplines by restaurant_id
+- ✅ Customer can get 5% discount at BOTH restaurants (first visit at each)
+
+#### Scenario 2: Multiple Saved Codes Selection
+**Flow:**
+1. Customer clicks Friend A's link for Restaurant X → Code saved
+2. Customer clicks Friend B's link for Restaurant X → Another code saved
+3. At checkout, staff shows list of available codes
+4. Customer chooses Friend A's code → A gets credited
+5. Friend B's code remains unused (available for future use)
+
+**Database Validation:**
+- ✅ `saved_referral_codes` allows multiple rows per (user_id, restaurant_id)
+- ✅ `UNIQUE(user_id, restaurant_id, referral_code)` prevents duplicate saves
+- ✅ `is_used` flag tracks which code was selected
+- ⚠️ **UI Requirement:** Staff checkout must display all unused codes for selection
+
+#### Scenario 3: Virtual Currency FIFO Expiry
+**Flow:**
+1. Customer earns RM5 on Day 1 (expires Day 31)
+2. Customer earns RM3 on Day 10 (expires Day 40)
+3. On Day 31, cron expires RM5 (oldest first)
+4. Customer balance: RM3 remaining
+
+**Database Validation:**
+- ✅ `virtual_currency_ledger.expires_at` tracks individual earning expiry
+- ✅ `expire_virtual_currency()` processes oldest first via ORDER BY
+- ✅ `expired_at` marks which earnings have been processed
+- ⚠️ **Missing:** Cron job configuration (needs Supabase Edge Function)
+
+---
+
+### 12.2 Edge Cases & Database Protections
+
+#### Edge Case 1: Self-Referral Prevention
+**Attack:** User tries to use their own referral code
+
+**Protection:**
+- ✅ `CHECK (downline_id != upline_id)` constraint in referrals table
+- ✅ Database-level prevention (cannot be bypassed)
+
+#### Edge Case 2: Concurrent Redemption Race Condition
+**Attack:** Customer redeems virtual currency at two locations simultaneously
+
+**Current State:**
+- ⚠️ `redeem_virtual_currency()` checks balance then inserts (not atomic)
+- **Risk:** Could redeem more than available balance
+
+**Recommendation:**
+```sql
+-- Add in redeem_virtual_currency() function
+SELECT COALESCE(SUM(amount), 0) INTO v_current_balance
+FROM virtual_currency_ledger
+WHERE user_id = p_user_id
+FOR UPDATE; -- Row-level lock prevents concurrent access
+```
+
+#### Edge Case 3: Transaction Atomicity Failure
+**Risk:** Server crashes after transaction created but before upline rewards distributed
+
+**Current State:**
+- ⚠️ No explicit transaction wrapping in checkout flow
+
+**Recommendation:**
+```sql
+-- Wrap in database transaction
+BEGIN;
+  INSERT INTO transactions (...) VALUES (...) RETURNING id INTO transaction_id;
+  SELECT distribute_upline_rewards(transaction_id, customer_id, bill_amount);
+  UPDATE saved_referral_codes SET is_used = TRUE WHERE id = saved_code_id;
+  INSERT INTO customer_restaurant_history (...) ON CONFLICT DO UPDATE ...;
+COMMIT;
+```
+
+#### Edge Case 4: Duplicate Referral Code Generation
+**Risk:** Random generator creates duplicate code
+
+**Current State:**
+- ✅ `UNIQUE` constraint on `users.referral_code` prevents duplicates
+- ⚠️ Need application retry logic when INSERT fails
+
+**Recommendation:**
+```javascript
+// Frontend code generation with retry
+async function generateUniqueReferralCode() {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const code = generateRandomCode();
+    const { data } = await supabase
+      .from('users')
+      .select('id')
+      .eq('referral_code', code)
+      .single();
+    
+    if (!data) return code; // Unique code found
+  }
+  throw new Error('Failed to generate unique code after 10 attempts');
+}
+```
+
+---
+
+### 12.3 Missing Database Elements
+
+#### Gap 1: Email Notification Tracking
+**Need:** Track sent emails to prevent duplicates and monitor delivery
+
+**Proposed Addition:**
+```sql
+CREATE TABLE email_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  notification_type VARCHAR(50) NOT NULL, -- 'welcome', 'earning', 'expiry_warning', 'password_reset'
+  related_entity_id UUID, -- transaction_id or ledger_id
+  sent_at TIMESTAMP DEFAULT NOW(),
+  email_provider_id VARCHAR(255), -- SendGrid message ID
+  status VARCHAR(20) DEFAULT 'sent' -- 'sent', 'delivered', 'bounced', 'failed'
+);
+
+CREATE INDEX idx_email_notifications_user ON email_notifications(user_id);
+CREATE INDEX idx_email_notifications_type ON email_notifications(notification_type);
+```
+
+#### Gap 2: Audit Log for Security
+**Need:** Track critical actions for debugging and security compliance
+
+**Proposed Addition:**
+```sql
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id), -- NULL if system action
+  action VARCHAR(50) NOT NULL, -- 'user_registered', 'transaction_created', 'staff_deleted'
+  entity_type VARCHAR(50), -- 'user', 'transaction', 'referral'
+  entity_id UUID,
+  metadata JSONB, -- Flexible data storage
+  ip_address VARCHAR(45),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+```
+
+#### Gap 3: PDPA-Compliant User Deletion
+**Need:** Soft-delete users with data anonymization
+
+**Proposed Addition:**
+```sql
+-- Add to users table
+ALTER TABLE users 
+  ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE,
+  ADD COLUMN deleted_at TIMESTAMP,
+  ADD COLUMN deletion_reason TEXT;
+
+CREATE INDEX idx_users_is_deleted ON users(is_deleted);
+
+-- Anonymization function
+CREATE OR REPLACE FUNCTION anonymize_user(p_user_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE users
+  SET 
+    email = 'deleted_' || id || '@deleted.local',
+    full_name = 'Deleted User',
+    birthday = NULL,
+    is_deleted = TRUE,
+    deleted_at = NOW()
+  WHERE id = p_user_id;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+#### Gap 4: System Configuration Table
+**Need:** Store configurable parameters without code deployment
+
+**Proposed Addition:**
+```sql
+CREATE TABLE system_config (
+  key VARCHAR(100) PRIMARY KEY,
+  value TEXT NOT NULL,
+  data_type VARCHAR(20) NOT NULL, -- 'string', 'number', 'boolean', 'json'
+  description TEXT,
+  updated_at TIMESTAMP DEFAULT NOW(),
+  updated_by UUID REFERENCES users(id)
+);
+
+-- Example config values
+INSERT INTO system_config VALUES
+  ('expiry_warning_days', '7', 'number', 'Days before expiry to send warning email'),
+  ('min_redemption_amount', '1.00', 'number', 'Minimum RM amount for redemption'),
+  ('max_referral_chain_display', '100', 'number', 'Max downlines to display in UI');
+```
+
+---
+
+### 12.4 Performance Optimization Recommendations
+
+#### Missing Index 1: Transaction Date Range Queries
+**Issue:** Owner dashboard filters by date range (slow without index)
+
+**Fix:**
+```sql
+CREATE INDEX idx_transactions_date_range ON transactions(transaction_date DESC);
+```
+
+#### Missing Index 2: Virtual Currency Expiry Processing
+**Issue:** Daily cron job scans entire ledger table
+
+**Fix:**
+```sql
+CREATE INDEX idx_ledger_expiry_check 
+ON virtual_currency_ledger(expires_at, transaction_type)
+WHERE transaction_type = 'earn' AND expired_at IS NULL;
+```
+
+#### Missing Index 3: Staff Transaction Lookup
+**Issue:** Staff viewing their daily transactions
+
+**Fix:**
+```sql
+CREATE INDEX idx_transactions_staff_date 
+ON transactions(staff_id, transaction_date DESC);
+```
+
+---
+
+### 12.5 Data Integrity Constraints
+
+#### Additional Constraint 1: Balance Cannot Go Negative
+**Risk:** Redemption bugs could cause negative balance
+
+**Fix:**
+```sql
+ALTER TABLE virtual_currency_ledger
+  ADD CONSTRAINT check_balance_non_negative 
+  CHECK (balance_after >= 0);
+```
+
+#### Additional Constraint 2: Redemption Within 20% Limit
+**Risk:** Manual calculation errors exceed 20% cap
+
+**Fix:**
+```sql
+-- Already exists in transactions table:
+CHECK (virtual_currency_redeemed <= bill_amount * 0.20)
+-- ✅ This is already implemented
+```
+
+#### Additional Constraint 3: Foreign Key Cascades
+**Risk:** Orphaned records after deletions
+
+**Review:**
+```sql
+-- Current: users.branch_id REFERENCES branches(id)
+-- Recommendation: Add ON DELETE SET NULL (staff can exist without branch)
+
+ALTER TABLE users
+  DROP CONSTRAINT users_branch_id_fkey,
+  ADD CONSTRAINT users_branch_id_fkey 
+    FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+
+-- Current: transactions.staff_id REFERENCES users(id)
+-- Recommendation: Add ON DELETE RESTRICT (prevent staff deletion with transactions)
+
+ALTER TABLE transactions
+  DROP CONSTRAINT transactions_staff_id_fkey,
+  ADD CONSTRAINT transactions_staff_id_fkey 
+    FOREIGN KEY (staff_id) REFERENCES users(id) ON DELETE RESTRICT;
+```
+
+---
+
+### 12.6 Validation Summary
+
+#### ✅ Schema Validated For:
+1. Multi-restaurant referral networks (restaurant_id in referrals)
+2. Restaurant-specific first-visit discounts (customer_restaurant_history)
+3. Multi-level rewards (3 uplines, unlimited downlines)
+4. FIFO virtual currency expiry (expires_at tracking)
+5. Saved codes selection (saved_referral_codes table)
+6. Transaction audit trail (receipt_photo_url, timestamps)
+7. Role-based access (RLS policies)
+
+#### ⚠️ Gaps Identified:
+1. Email notification tracking table
+2. Audit logs for security compliance
+3. PDPA user deletion fields (is_deleted, deleted_at)
+4. System configuration table
+5. Missing performance indexes (transaction_date, staff_date)
+6. Race condition protection (FOR UPDATE locks)
+7. Transaction atomicity wrapping
+8. Foreign key cascade behavior clarification
+
+#### 🔧 Recommended Actions:
+1. **Priority 1 (MVP Blocker):** Add missing indexes for performance
+2. **Priority 2 (MVP Required):** Implement transaction wrapping for atomicity
+3. **Priority 3 (Post-MVP):** Add email_notifications and audit_logs tables
+4. **Priority 4 (PDPA Compliance):** Add user deletion fields before launch
+5. **Priority 5 (Nice-to-Have):** Add system_config table for flexibility
+
+---
+
+**Validation Completed:** 2025-10-09  
+**Overall Assessment:** Schema is well-designed for core workflows. Identified gaps are mostly enhancements and safety improvements, not fundamental design flaws.
