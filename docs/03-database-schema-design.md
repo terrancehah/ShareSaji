@@ -421,7 +421,7 @@ CREATE INDEX idx_saved_codes_is_used ON saved_referral_codes(is_used);
 
 ### 2.8 customer_restaurant_history
 
-Tracks customer's first visit and activity per restaurant.
+Tracks customer's first visit and activity per restaurant (determines guaranteed discount eligibility).
 
 ```sql
 CREATE TABLE customer_restaurant_history (
@@ -460,6 +460,71 @@ SELECT EXISTS (
   WHERE customer_id = ? AND restaurant_id = ?
 );
 ```
+
+---
+
+### 2.9 menu_items
+
+Restaurant menu items/products for inventory, ordering, and nutritional information.
+
+```sql
+CREATE TABLE menu_items (
+  -- Primary Key
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Association (NULL = available for all restaurants)
+  restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE,
+  
+  -- Item Details
+  item_number INTEGER,
+  name VARCHAR(255) NOT NULL,
+  category VARCHAR(100), -- 'meat', 'seafood', 'vegetables', 'processed', 'noodles_rice', 'herbs', 'others'
+  
+  -- Pricing
+  price DECIMAL(10,2),
+  unit VARCHAR(50), -- 'Kg', 'Pack', 'Box', 'Pcs', etc.
+  
+  -- Nutritional Information (per 100g)
+  calories_per_100g INTEGER,
+  protein_per_100g DECIMAL(5,2),
+  fat_per_100g DECIMAL(5,2),
+  
+  -- Inventory
+  stock_quantity DECIMAL(10,2) DEFAULT 0,
+  low_stock_threshold DECIMAL(10,2),
+  
+  -- Status
+  is_available BOOLEAN DEFAULT TRUE,
+  is_active BOOLEAN DEFAULT TRUE,
+  
+  -- Metadata
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  notes TEXT
+);
+
+CREATE INDEX idx_menu_items_restaurant_id ON menu_items(restaurant_id);
+CREATE INDEX idx_menu_items_category ON menu_items(category);
+CREATE INDEX idx_menu_items_is_available ON menu_items(is_available);
+CREATE INDEX idx_menu_items_name ON menu_items(name);
+```
+
+**Key Features:**
+- Restaurant-specific or global items (restaurant_id NULL = available for all)
+- Nutritional information per 100g (calories, protein, fat)
+- Inventory tracking with low stock alerts
+- Flexible unit system (Kg, Pack, Box, etc.)
+- Category-based organization (meat, seafood, vegetables, processed, noodles_rice, herbs, others)
+- 48 items pre-populated from inventory list
+
+**Categories:**
+- **Meat** (4 items): Beef, chicken, lamb
+- **Seafood** (5 items): Prawns, fish fillets, clams, sotong
+- **Processed** (12 items): Tofu, balls, eggs, hotdog, nuggets, fries
+- **Vegetables** (15 items): Mushrooms, leafy greens, root vegetables
+- **Herbs** (3 items): Green onion, garlic, chili
+- **Noodles & Rice** (6 items): Various noodles, rice, fungus
+- **Others** (3 items): Bell roll, white tofu, tofu puffs
 
 ---
 
