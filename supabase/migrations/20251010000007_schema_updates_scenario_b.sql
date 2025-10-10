@@ -1,4 +1,4 @@
--- ShareSaji Database Schema - Updates for Scenario B
+-- MalaChilli Database Schema - Updates for Scenario B
 -- Version: 1.1
 -- Date: 2025-10-10
 -- Description: 

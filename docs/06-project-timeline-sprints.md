@@ -1,5 +1,5 @@
 # Project Timeline & Sprint Planning
-## ShareSaji - Phased Development Schedule
+## MalaChilli - Phased Development Schedule
 
 **Version:** 2.0  
 **Date:** 2025-10-05  

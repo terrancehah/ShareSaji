@@ -1,4 +1,4 @@
--- ShareSaji Database Schema - RLS Policies Migration
+-- MalaChilli Database Schema - RLS Policies Migration
 -- Version: 1.0
 -- Date: 2025-10-09
 -- Description: Row Level Security policies for role-based access control

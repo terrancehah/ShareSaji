@@ -1,4 +1,4 @@
--- ShareSaji Database Schema - Views Migration
+-- MalaChilli Database Schema - Views Migration
 -- Version: 1.0
 -- Date: 2025-10-09
 -- Description: Helper views for common queries (wallet balance, downlines, analytics)

@@ -1,5 +1,5 @@
 # User Stories & Acceptance Criteria
-## ShareSaji - MVP Requirements
+## MalaChilli - MVP Requirements
 
 **Version:** 1.0  
 **Date:** 2025-09-30  

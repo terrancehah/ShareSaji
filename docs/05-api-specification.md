@@ -1,5 +1,5 @@
 # API Specification
-## ShareSaji - REST API Documentation
+## MalaChilli - REST API Documentation
 
 **Version:** 1.0  
 **Date:** 2025-09-30  
@@ -1140,7 +1140,7 @@ GET /rest/v1/transactions?bill_amount=gte.100&order=transaction_date.desc
 ## 14. Appendix: Postman Collection
 
 A Postman collection with all endpoints is available at:
-`/docs/postman/ShareSaji-API.postman_collection.json`
+`/docs/postman/MalaChilli-API.postman_collection.json`
 
 Import into Postman for easy testing.
 

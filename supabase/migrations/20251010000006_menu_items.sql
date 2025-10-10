@@ -1,4 +1,4 @@
--- ShareSaji Database Schema - Menu Items Migration
+-- MalaChilli Database Schema - Menu Items Migration
 -- Version: 1.0
 -- Date: 2025-10-10
 -- Description: Menu items/products table for restaurant inventory and ordering

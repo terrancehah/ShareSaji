@@ -1,5 +1,5 @@
 # Referral Sharing Implementation Guide
-## ShareSaji - Code/QR Sharing Flow
+## MalaChilli - Code/QR Sharing Flow
 
 **Version:** 1.0  
 **Date:** 2025-10-05  
@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-This guide details the implementation of the referral sharing and code redemption flow in ShareSaji, following the **restaurant-specific referral model** where each restaurant builds its own referral network.
+This guide details the implementation of the referral sharing and code redemption flow in MalaChilli, following the **restaurant-specific referral model** where each restaurant builds its own referral network.
 
 ### 1.1 Key Principles
 

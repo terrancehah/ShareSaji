@@ -1,5 +1,5 @@
 # MVP Scope Definition (MoSCoW Prioritization)
-## ShareSaji - Phase 1 MVP
+## MalaChilli - Phase 1 MVP
 
 **Version:** 1.0  
 **Date:** 2025-09-30  

@@ -1,4 +1,4 @@
--- ShareSaji Database Schema - Seed Data Migration
+-- MalaChilli Database Schema - Seed Data Migration
 -- Version: 1.0
 -- Date: 2025-10-09
 -- Description: Sample data for testing and development

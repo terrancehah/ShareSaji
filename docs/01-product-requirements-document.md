@@ -1,5 +1,5 @@
 # Product Requirements Document (PRD)
-## ShareSaji - Viral Restaurant Discount Platform
+## MalaChilli - Viral Restaurant Discount Platform
 
 **Version:** 1.0  
 **Date:** 2025-09-30  
@@ -11,7 +11,7 @@
 ## 1. Executive Summary
 
 ### 1.1 Product Vision
-ShareSaji is a web-based viral marketing platform that helps Malaysian local restaurants boost foot traffic and sales through multi-level discount sharing. Customers earn rewards by referring others, creating a self-sustaining promotional ecosystem.
+MalaChilli is a web-based viral marketing platform that helps Malaysian local restaurants boost foot traffic and sales through multi-level discount sharing. Customers earn rewards by referring others, creating a self-sustaining promotional ecosystem.
 
 ### 1.2 Business Objectives
 - Increase restaurant foot traffic by 30-50% within 3 months of launch
@@ -506,7 +506,7 @@ ShareSaji is a web-based viral marketing platform that helps Malaysian local res
 4. **Hosting:** Vercel vs Netlify? (Recommendation: Vercel for better Next.js integration if using React)
 
 ### 11.3 Design Decisions
-1. **Color Scheme:** Brand colors for ShareSaji? (Recommendation: Warm, food-friendly colors like orange/red)
+1. **Color Scheme:** Brand colors for MalaChilli? (Recommendation: Warm, food-friendly colors like orange/red)
 2. **Language:** English only, or Bahasa Malaysia support? (Recommendation: English for MVP, add BM in Phase 2)
 3. **Currency Display:** Always show "RM" prefix? (Recommendation: Yes, for clarity)
 
@@ -563,21 +563,42 @@ ShareSaji is a web-based viral marketing platform that helps Malaysian local res
 
 ## 14. Appendix
 
-### 14.1 Glossary
-- **Guaranteed Discount:** 5% discount on first transaction after registration
-- **Unguaranteed Discount:** Discount from virtual currency earned via referrals
+### 14.1 Final Discount Model (Updated 2025-10-10)
+
+**Decision:** 5% Guaranteed Discount on ALL Transactions (Scenario B)
+
+**Business Rationale:**
+1. Restaurant budget confirmed: 10% of sales allocated for discount program
+2. Price markup strategy available: Restaurants can adjust menu prices by 5% to compensate
+3. Customer retention priority: Guaranteed ongoing benefit ensures repeat visits
+4. Simplicity: Easier to explain and implement
+
+**Cost Structure (Per RM100 Transaction):**
+- Guaranteed discount: -RM5 (5% always)
+- Upline rewards: -RM3 (3% max)
+- VC redemption: -RM2 (average)
+- **Total cost: RM10 (10% of bill)** ✅ Within budget
+
+**Key Changes:**
+- Removed `age` field from users table (calculated from birthday)
+- Updated `process_checkout_transaction()` to always apply 5% discount
+- `customer_restaurant_history` table kept for analytics only (not discount eligibility)
+
+### 14.2 Glossary
+- **Guaranteed Discount:** 5% discount on EVERY transaction (not just first)
+- **Unguaranteed Discount:** Additional discount from virtual currency earned via referrals
 - **Virtual Currency:** Redeemable balance earned from downline spends (1% per spend, up to 3 uplines)
 - **Upline:** User who referred you (up to 3 levels above)
 - **Downline:** User you referred (unlimited)
 - **Redemption Cap:** Maximum 20% of current bill can be paid with virtual currency
 - **Expiry:** Virtual currency expires 30 days after earning
 
-### 14.2 References
+### 14.3 References
 - Malaysian PDPA: https://www.pdp.gov.my/
 - Referral Marketing Best Practices: [Industry research]
 - Restaurant Promotion ROI Studies: [Industry benchmarks]
 
-### 14.3 Document History
+### 14.4 Document History
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2025-09-30 | Product Team | Initial draft based on project plan |

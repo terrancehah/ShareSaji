@@ -1,5 +1,5 @@
 # Executive Summary
-## ShareSaji - Viral Restaurant Discount Platform
+## MalaChilli - Viral Restaurant Discount Platform
 
 **Document Type:** Project Overview  
 **Version:** 1.0  
@@ -10,7 +10,7 @@
 
 ## 1. Project Vision
 
-ShareSaji is a web-based viral marketing platform that helps Malaysian local restaurants increase foot traffic and sales through multi-level discount sharing. By turning customers into brand ambassadors, restaurants achieve measurable ROI without upfront marketing costs.
+MalaChilli is a web-based viral marketing platform that helps Malaysian local restaurants increase foot traffic and sales through multi-level discount sharing. By turning customers into brand ambassadors, restaurants achieve measurable ROI without upfront marketing costs.
 
 **Tagline:** *"Share the savings, grow the community"*
 
@@ -44,7 +44,7 @@ ShareSaji is a web-based viral marketing platform that helps Malaysian local res
 
 ## 3. The Solution
 
-### ShareSaji's Unique Value Proposition
+### MalaChilli's Unique Value Proposition
 
 **For Customers:**
 - 🎟️ **Guaranteed 5% discount** on first visit after registration
@@ -146,14 +146,14 @@ Level 4 (via Level 3) spends RM100
 
 ### Competitive Landscape
 
-| Solution | Pros | Cons | ShareSaji Advantage |
+| Solution | Pros | Cons | MalaChilli Advantage |
 |----------|------|------|---------------------|
 | **Traditional Ads** (Facebook, Google) | Wide reach | High cost, low conversion, no loyalty | Pay-for-performance, built-in loyalty |
 | **Loyalty Cards** (Stamp cards) | Simple | No virality, manual tracking | Automated, viral, multi-level rewards |
 | **Referral Programs** (e.g., GrabFood) | Some virality | Single-level only, high fees (30%) | Multi-level, low cost (8% max) |
 | **Discount Apps** (e.g., Fave, eatigo) | Large user base | High commission (10-30%), no ownership | Restaurant owns customer data, lower cost |
 
-**ShareSaji's Differentiation:**
+**MalaChilli's Differentiation:**
 1. **Multi-level rewards** (unique in Malaysia)
 2. **No upfront cost** (pay only on sales)
 3. **Restaurant owns customer data** (not platform-dependent)
@@ -192,12 +192,12 @@ Level 4 (via Level 3) spends RM100
 
 **Calculation:**
 - **Baseline revenue:** RM25,000/month (500 × RM50)
-- **With ShareSaji:** RM32,500/month (+30%)
+- **With MalaChilli:** RM32,500/month (+30%)
 - **Discount cost:** RM2,600 (RM32,500 × 8%)
 - **Net revenue increase:** RM5,000 (RM32,500 - RM25,000 - RM2,600)
 - **ROI:** 192% (RM5,000 / RM2,600)
 
-**Conclusion:** Restaurant earns RM5,000 extra per month, making ShareSaji highly attractive.
+**Conclusion:** Restaurant earns RM5,000 extra per month, making MalaChilli highly attractive.
 
 ---
 
@@ -546,9 +546,9 @@ Level 4 (via Level 3) spends RM100
 
 ## 15. Conclusion
 
-ShareSaji addresses a critical pain point for Malaysian local restaurants: **high customer acquisition costs and low repeat visit rates**. By creating a viral, multi-level referral system, we turn customers into brand ambassadors, driving measurable ROI without upfront marketing spend.
+MalaChilli addresses a critical pain point for Malaysian local restaurants: **high customer acquisition costs and low repeat visit rates**. By creating a viral, multi-level referral system, we turn customers into brand ambassadors, driving measurable ROI without upfront marketing spend.
 
-### Why ShareSaji Will Succeed
+### Why MalaChilli Will Succeed
 
 1. **Pay-for-Performance:** Restaurants only pay discounts on actual sales, making it risk-free
 2. **Viral Mechanics:** Multi-level rewards (unique in Malaysia) create exponential growth

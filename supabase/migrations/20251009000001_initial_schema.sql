@@ -1,4 +1,4 @@
--- ShareSaji Database Schema - Initial Migration
+-- MalaChilli Database Schema - Initial Migration
 -- Version: 1.0
 -- Date: 2025-10-09
 -- Description: Core tables for users, restaurants, branches, referrals, transactions, and virtual currency

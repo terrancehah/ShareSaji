@@ -1,5 +1,5 @@
 # Technical Architecture Document
-## ShareSaji - MVP System Design
+## MalaChilli - MVP System Design
 
 **Version:** 1.0  
 **Date:** 2025-09-30  
@@ -85,88 +85,14 @@
 
 ## 2. Frontend Architecture
 
-### 2.1 Application Structure
+**Note:** Complete frontend documentation has been moved to `09-frontend-development-guide.md`
 
-```
-/src
-├── /components          # Reusable UI components
-│   ├── /common          # Buttons, inputs, modals, etc.
-│   ├── /customer        # Customer-specific components
-│   ├── /staff           # Staff-specific components
-│   └── /owner           # Owner-specific components
-├── /pages               # Page-level components (routes)
-│   ├── /customer        # Customer portal pages
-│   ├── /staff           # Staff portal pages
-│   └── /owner           # Owner portal pages
-├── /contexts            # React Context providers
-│   ├── AuthContext.jsx  # User authentication state
-│   └── WalletContext.jsx # Virtual currency state
-├── /hooks               # Custom React hooks
-│   ├── useAuth.js       # Authentication logic
-│   ├── useWallet.js     # Wallet balance logic
-│   └── useQRScanner.js  # QR scanning logic
-├── /services            # API service layer
-│   ├── authService.js   # Auth API calls
-│   ├── walletService.js # Wallet API calls
-│   └── transactionService.js # Transaction API calls
-├── /utils               # Utility functions
-│   ├── formatCurrency.js # RM formatting
-│   ├── generateReferralCode.js # Code generation
-│   └── validators.js    # Form validation
-├── /config              # Configuration files
-│   └── supabase.js      # Supabase client setup
-├── App.jsx              # Root component
-└── main.jsx             # Entry point
-```
-
-### 2.2 Routing Structure
-
-```javascript
-// Customer Portal Routes
-/                        → Landing page (login/register)
-/register                → Registration form
-/login                   → Login form
-/dashboard               → Customer dashboard (wallet, referrals)
-/wallet                  → Wallet details (balance, history)
-/referrals               → Referral tree visualization
-/share                   → Share code/QR page
-
-// Staff Portal Routes
-/staff/login             → Staff login
-/staff/dashboard         → Staff dashboard (today's stats)
-/staff/checkout          → Checkout flow (scan, verify, apply discount)
-/staff/transactions      → Transaction history (today)
-
-// Owner Portal Routes
-/owner/login             → Owner login
-/owner/dashboard         → Owner analytics dashboard
-/owner/customers         → Customer list
-/owner/transactions      → Transaction list
-/owner/staff             → Staff management
-/owner/settings          → Restaurant settings
-```
-
-### 2.3 State Management Strategy
-
-#### Global State (Context API)
-- **AuthContext:** Current user, role, login/logout functions
-- **WalletContext:** Current balance, transaction history (for customers)
-
-#### Local State (useState)
-- Form inputs, UI toggles, loading states
-
-#### Server State (Supabase Realtime)
-- Wallet balance updates (when downline spends)
-- Transaction notifications
-
-### 2.4 Component Design Patterns
-
-#### Atomic Design Approach
-- **Atoms:** Button, Input, Label, Badge
-- **Molecules:** FormField (Label + Input + Error), QRDisplay (QR + Copy button)
-- **Organisms:** RegistrationForm, CheckoutForm, AnalyticsDashboard
-- **Templates:** CustomerLayout, StaffLayout, OwnerLayout
-- **Pages:** CustomerDashboard, StaffCheckout, OwnerAnalytics
+**Quick Reference:**
+- UI/UX Design System (Colors, Typography, Buttons, Inputs)
+- Component Structure (Atomic Design)
+- Routing & State Management
+- Tailwind Configuration
+- React Components & Patterns
 
 ---
 

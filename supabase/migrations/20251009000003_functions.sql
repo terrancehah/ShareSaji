@@ -1,4 +1,4 @@
--- ShareSaji Database Schema - Functions Migration
+-- MalaChilli Database Schema - Functions Migration
 -- Version: 1.0
 -- Date: 2025-10-09
 -- Description: Stored procedures and functions for business logic
