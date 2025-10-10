@@ -75,7 +75,7 @@ INSERT INTO users (id, email, password_hash, email_verified, role, full_name, re
  TRUE, 
  'customer', 
  'Alice Customer', 
- 'SAJI-AAA111', 
+ 'CHILLI-AAA111', 
  '1990-01-15',
  34);
 
@@ -87,7 +87,7 @@ INSERT INTO users (id, email, password_hash, email_verified, role, full_name, re
  TRUE, 
  'customer', 
  'Bob Customer', 
- 'SAJI-BBB222', 
+ 'CHILLI-BBB222', 
  '1995-05-20',
  29);
 
@@ -99,7 +99,7 @@ INSERT INTO users (id, email, password_hash, email_verified, role, full_name, re
  TRUE, 
  'customer', 
  'Charlie Customer', 
- 'SAJI-CCC333', 
+ 'CHILLI-CCC333', 
  '2000-12-25',
  24);
 
@@ -111,7 +111,7 @@ INSERT INTO users (id, email, password_hash, email_verified, role, full_name, re
  TRUE, 
  'customer', 
  'Diana Customer', 
- 'SAJI-DDD444', 
+ 'CHILLI-DDD444', 
  '1998-08-10',
  26);
 
@@ -303,8 +303,8 @@ INSERT INTO customer_restaurant_history (
   last_visit_date
 ) VALUES
 ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '10 days', NULL, 1, 100.00, NOW() - INTERVAL '10 days'),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '8 days', 'SAJI-AAA111', 1, 100.00, NOW() - INTERVAL '8 days'),
-('cccccccc-cccc-cccc-cccc-cccccccccccc', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '5 days', 'SAJI-BBB222', 1, 150.00, NOW() - INTERVAL '5 days');
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '8 days', 'CHILLI-AAA111', 1, 100.00, NOW() - INTERVAL '8 days'),
+('cccccccc-cccc-cccc-cccc-cccccccccccc', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '5 days', 'CHILLI-BBB222', 1, 150.00, NOW() - INTERVAL '5 days');
 
 -- ============================================================================
 -- 10. INSERT TEST SAVED REFERRAL CODES
@@ -321,7 +321,7 @@ INSERT INTO saved_referral_codes (
 ) VALUES (
   'dddddddd-dddd-dddd-dddd-dddddddddddd',
   '11111111-1111-1111-1111-111111111111',
-  'SAJI-CCC333',
+  'CHILLI-CCC333',
   'cccccccc-cccc-cccc-cccc-cccccccccccc',
   FALSE,
   NOW() - INTERVAL '3 days'

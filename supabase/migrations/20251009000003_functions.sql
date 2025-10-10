@@ -307,7 +307,7 @@ BEGIN
       v_code_suffix := v_code_suffix || substring(v_chars FROM (floor(random() * length(v_chars)) + 1)::INTEGER FOR 1);
     END LOOP;
     
-    v_code := 'SAJI-' || v_code_suffix;
+    v_code := 'CHILLI-' || v_code_suffix;
     
     -- Check if code already exists
     IF NOT EXISTS (SELECT 1 FROM users WHERE referral_code = v_code) THEN
@@ -322,7 +322,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION generate_unique_referral_code IS 'Generates a unique referral code in SAJI-XXXXXX format with retry logic';
+COMMENT ON FUNCTION generate_unique_referral_code IS 'Generates a unique referral code in CHILLI-XXXXXX format with retry logic';
 
 -- ============================================================================
 -- 7. PROCESS CHECKOUT TRANSACTION FUNCTION (Atomic wrapper)

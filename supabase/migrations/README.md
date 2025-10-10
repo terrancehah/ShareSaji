@@ -1,6 +1,6 @@
-# ShareSaji Database Migrations
+# MalaChilli Database Migrations
 
-Complete database schema migrations for ShareSaji MVP.
+Complete database schema migrations for MalaChilli MVP.
 
 ## Migration Files
 
@@ -129,7 +129,7 @@ open http://localhost:54323
 - Email: `customer.a@test.com` through `customer.d@test.com`
 - Password: `TestCustomer123!`
 - Role: Customer
-- Referral Codes: SAJI-AAA111, SAJI-BBB222, SAJI-CCC333, SAJI-DDD444
+- Referral Codes: CHILLI-AAA111, CHILLI-BBB222, CHILLI-CCC333, CHILLI-DDD444
 
 ## Verification Queries
 

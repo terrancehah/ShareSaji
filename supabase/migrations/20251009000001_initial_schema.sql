@@ -89,7 +89,7 @@ CREATE TABLE users (
   age INTEGER CHECK (age >= 13 AND age <= 120),
   
   -- Referral Code (for customers)
-  referral_code VARCHAR(20) UNIQUE, -- Format: 'SAJI-' + 6 alphanumeric chars (e.g., 'SAJI-ABC123')
+  referral_code VARCHAR(20) UNIQUE, -- Format: 'CHILLI-' + 6 alphanumeric chars (e.g., 'CHILLI-ABC123')
   
   -- Associations
   branch_id UUID REFERENCES branches(id) ON DELETE SET NULL, -- for staff only
@@ -117,7 +117,7 @@ CREATE INDEX idx_users_restaurant_id ON users(restaurant_id);
 CREATE INDEX idx_users_is_deleted ON users(is_deleted);
 
 COMMENT ON TABLE users IS 'All user accounts with role-based access (customers, staff, owners)';
-COMMENT ON COLUMN users.referral_code IS 'Unique code for customer referrals (SAJI-XXXXXX format)';
+COMMENT ON COLUMN users.referral_code IS 'Unique code for customer referrals (CHILLI-XXXXXX format)';
 COMMENT ON COLUMN users.is_deleted IS 'Soft-delete flag for PDPA compliance';
 
 -- ============================================================================
